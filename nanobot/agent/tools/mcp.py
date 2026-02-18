@@ -1,12 +1,59 @@
 """MCP client: connects to MCP servers and wraps their tools as native nanobot tools."""
 
+import os
+import shutil
 from contextlib import AsyncExitStack
+from pathlib import Path
 from typing import Any
 
 from loguru import logger
 
 from nanobot.agent.tools.base import Tool
 from nanobot.agent.tools.registry import ToolRegistry
+
+# Whitelist of allowed MCP server commands for security
+# Only these base commands are permitted to prevent arbitrary code execution
+ALLOWED_MCP_COMMANDS = {
+    "node",
+    "python",
+    "python3",
+    "npx",
+    "uvx",
+}
+
+
+def _validate_mcp_command(command: str) -> tuple[bool, str]:
+    """
+    Validate MCP server command for security.
+
+    Only whitelisted commands are allowed to prevent command injection.
+
+    Returns:
+        (is_valid, error_message) tuple
+    """
+    if not command:
+        return False, "Command cannot be empty"
+
+    # Extract base command (handle paths)
+    base_cmd = Path(command).name
+
+    # Check against whitelist
+    if base_cmd not in ALLOWED_MCP_COMMANDS:
+        return False, (
+            f"Command '{base_cmd}' not in allowed list: {', '.join(sorted(ALLOWED_MCP_COMMANDS))}. "
+            "Only whitelisted commands can be used for MCP servers."
+        )
+
+    # If command is a path, verify it exists
+    if os.path.sep in command:
+        if not os.path.isfile(command):
+            return False, f"Command path does not exist: {command}"
+    else:
+        # Verify command is in PATH
+        if not shutil.which(command):
+            return False, f"Command '{command}' not found in PATH"
+
+    return True, ""
 
 
 class MCPToolWrapper(Tool):
@@ -53,6 +100,14 @@ async def connect_mcp_servers(
     for name, cfg in mcp_servers.items():
         try:
             if cfg.command:
+                # Validate command for security
+                is_valid, error_msg = _validate_mcp_command(cfg.command)
+                if not is_valid:
+                    logger.error(
+                        f"MCP server '{name}': command validation failed: {error_msg}"
+                    )
+                    continue
+
                 params = StdioServerParameters(
                     command=cfg.command, args=cfg.args, env=cfg.env or None
                 )
