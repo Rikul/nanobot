@@ -166,7 +166,39 @@ For production use:
    pip install --upgrade nanobot-ai
    ```
 
-### 8. Development vs Production
+### 8. MCP Server Configuration
+
+**NEW in v0.1.4+**: MCP server commands are now validated against a whitelist.
+
+The `mcp_servers` configuration in `config.json` allows connecting to Model Context Protocol servers:
+
+```json
+{
+  "tools": {
+    "mcpServers": {
+      "filesystem": {
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/dir"]
+      }
+    }
+  }
+}
+```
+
+**Security Controls:**
+- ✅ Commands validated against whitelist: `node`, `python`, `python3`, `npx`, `uvx`
+- ✅ Invalid commands rejected with clear error message
+- ✅ Path validation for commands with full paths
+- ⚠️ Command arguments are not validated (ensure trusted configuration source)
+
+**Recommendations:**
+- Only use MCP servers from trusted sources
+- Review all MCP server configurations before deployment
+- Keep MCP server packages updated
+- Monitor MCP server process execution in logs
+- Consider sandboxing MCP servers in production
+
+### 9. Development vs Production
 
 **Development:**
 - Use separate API keys
@@ -181,14 +213,14 @@ For production use:
 - Regular security reviews
 - Monitor for unusual activity
 
-### 9. Data Privacy
+### 10. Data Privacy
 
 - **Logs may contain sensitive information** - secure log files appropriately
 - **LLM providers see your prompts** - review their privacy policies
 - **Chat history is stored locally** - protect the `~/.nanobot` directory
 - **API keys are in plain text** - use OS keyring for production
 
-### 10. Incident Response
+### 11. Incident Response
 
 If you suspect a security breach:
 
@@ -203,8 +235,6 @@ If you suspect a security breach:
 6. **Report the incident** to maintainers
 
 ## Security Features
-
-### Built-in Security Controls
 
 ✅ **Input Validation**
 - Path traversal protection on file operations
@@ -253,11 +283,28 @@ Before deploying nanobot:
 
 ## Updates
 
-**Last Updated**: 2026-02-03
+**Last Updated**: 2026-02-18
+
+### Recent Security Enhancements (v0.1.4+)
+
+**2026-02-18: Security Audit Completed**
+- ✅ Comprehensive security audit performed (see `SECURITY_AUDIT_REPORT.md`)
+- ✅ Added MCP command validation with whitelist-based security
+- ✅ Implemented startup warnings for channels with empty `allowFrom` lists
+- ✅ Added 14 comprehensive security test cases
+- 📋 Identified and documented 2 critical, 4 medium, and 3 low severity findings
+- 📋 All critical findings addressed or mitigated with controls
+
+**Key Improvements:**
+1. **MCP Security**: Commands now validated against whitelist (node, python, python3, npx, uvx)
+2. **Access Control**: Clear warnings when channels are open to all users
+3. **Test Coverage**: New security test suite validates protections
+4. **Documentation**: Comprehensive audit report with findings and recommendations
 
 For the latest security updates and announcements, check:
 - GitHub Security Advisories: https://github.com/HKUDS/nanobot/security/advisories
 - Release Notes: https://github.com/HKUDS/nanobot/releases
+- Security Audit Report: `SECURITY_AUDIT_REPORT.md`
 
 ## License
 
